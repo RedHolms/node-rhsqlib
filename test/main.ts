@@ -2,10 +2,10 @@
 // everything should have type checking and caching
 // also allow multiple SQL backends (sqlite, postgresql, mysql, etc.)
 
-import sqlib from "rhsqlib";
+import sqlib from "..";
 
 const UsersSchema =
-  new sqlib.Table("users")
+  new sqlib.TableSchema("users")
     .Column("id",                         "BIGINT" ).PrimaryKey()
     .Column("banned",                     "BOOLEAN").NotNull().Default(false)
     .Column("role",                       "INT"    ).NotNull().Default(0)
@@ -18,30 +18,30 @@ const UsersSchema =
 
 const masterDb = new sqlib.Database([ UsersSchema ]);
 
-// by id
+// // by id
 masterDb.users.get(42);
 
-// returns list (becuase role NOT unique and not pkey)
-masterDb.users.getBy("role");
+// // returns list (becuase role NOT unique and not pkey)
+// masterDb.users.getBy("role");
 
-// returns one or undefined
-masterDb.users.getBy("username");
+// // returns one or undefined
+// masterDb.users.getBy("username");
 
-// same as just users.get(...)
-masterDb.users.getBy("id", 42);
+// // same as just users.get(...)
+// masterDb.users.getBy("id", 42);
 
-masterDb.users.list();
+// masterDb.users.list();
 
-masterDb.users.update(42, "role", 2);
-masterDb.users.updateBy("id", 42, "role", 4);
+// masterDb.users.update(42, "role", 2);
+// masterDb.users.updateBy("id", 42, "role", 4);
 
-masterDb.users.delete(42);
-masterDb.users.deleteBy("id", 42);
+// masterDb.users.delete(42);
+// masterDb.users.deleteBy("id", 42);
 
-// must contain all not-null cols without default value
-masterDb.users.insert({
-  id: 42,
-  regDate: Date.now(),
-  gotAccessBy: 43,
-  username: "coolguy55"
-});
+// // must contain all not-null cols without default value
+// masterDb.users.insert({
+//   id: 42,
+//   regDate: Date.now(),
+//   gotAccessBy: 43,
+//   username: "coolguy55"
+// });

@@ -7,8 +7,9 @@ export interface ValueTypes {
 }
 
 export type ValueType = keyof ValueTypes;
+export type AnyValueType = ValueTypes[ValueType];
 
-type ColT = {
+interface ColumnSchema {
   name: string;
   type: ValueType;
   pk: boolean;
@@ -17,35 +18,34 @@ type ColT = {
   df: ValueTypes[ValueType] | null | undefined;
 };
 
-interface TableImplTArg {
+interface ComputedTableSchema {
   name: string;
-  columns: ColT[];
+  columns: ColumnSchema[];
 }
 
 type PopL<Arr extends any[]> = Arr extends [...infer L, infer R] ? L : [];
 type PopR<Arr extends any[]> = Arr extends [...infer L, infer R] ? R : never;
 
-type Equ<A,B> = A extends B ? B extends A ? true : false : false;
+// shortcut to get JS type for last column
+// also allow "null" if column not "NOT NULL"
+type LT<I extends ComputedTableSchema> =
+  ValueTypes[PopR<I["columns"]>["type"]] | (
+    PopR<I["columns"]>["nn"] extends true ? never : null
+  );
 
-type ColPS<
-  I extends TableImplTArg,
-  P extends keyof ColT,
-  T extends ColT[P],
+type _PKT<Cols extends any[]> =
+  Cols extends [infer C, ...infer Rest] ?
+    C extends ColumnSchema ?
+      C["pk"] extends true ? ValueTypes[C["type"]]
+      : _PKT<Rest>
+    : never
+  : never;
 
-  _R extends ColT = PopR<I["columns"]>
-> = TableT<{
-  name: I["name"],
-  columns: [
-    ...PopL<I["columns"]>,
-    {
-      [K in keyof ColT]:
-        Equ<P,K> extends true ? T extends ColT[K] ? T : never : _R[K]
-    }
-  ]
-}>;
+// get JS type for primary key
+type PKT<I extends ComputedTableSchema> = _PKT<I["columns"]>;
 
-interface TableT<I extends TableImplTArg> {
-  Column<Name extends string, Type extends ValueType>(name: Name, type: Type): TableT<{
+interface TableSchema<I extends ComputedTableSchema> {
+  Column<Name extends string, Type extends ValueType>(name: Name, type: Type): TableSchema<{
     name: I["name"],
     columns: [
       ...I["columns"],
@@ -60,35 +60,122 @@ interface TableT<I extends TableImplTArg> {
     ]
   }>;
 
-  PrimaryKey(): ColPS<I, "pk", true>;
-  NotNull(): ColPS<I, "nn", true>;
-  Unique(): ColPS<I, "uq", true>;
-  Default<
-    _R extends ColT = PopR<I["columns"]>,
-    _T extends ValueTypes[_R["type"]] = ValueTypes[_R["type"]]
-  >(defaultValue: _T): ColPS<I, "df", _T>;
+  /// fucking mess but better performance
+
+  // todo accept multiple pkeys
+  PrimaryKey(): TableSchema<{
+    name: I["name"],
+    columns: [
+      ...PopL<I["columns"]>,
+      {
+        name: PopR<I["columns"]>["name"],
+        type: PopR<I["columns"]>["type"],
+        pk: true,
+        nn: true,
+        uq: PopR<I["columns"]>["uq"],
+        df: PopR<I["columns"]>["df"]
+      }
+    ]
+  }>;
+
+  NotNull(): TableSchema<{
+    name: I["name"],
+    columns: [
+      ...PopL<I["columns"]>,
+      {
+        name: PopR<I["columns"]>["name"],
+        type: PopR<I["columns"]>["type"],
+        pk: PopR<I["columns"]>["pk"],
+        nn: true,
+        uq: PopR<I["columns"]>["uq"],
+        df: PopR<I["columns"]>["df"]
+      }
+    ]
+  }>;
+
+  // todo allow to bind multiple columns for unique
+  Unique(): TableSchema<{
+    name: I["name"],
+    columns: [
+      ...PopL<I["columns"]>,
+      {
+        name: PopR<I["columns"]>["name"],
+        type: PopR<I["columns"]>["type"],
+        pk: PopR<I["columns"]>["pk"],
+        nn: PopR<I["columns"]>["nn"],
+        uq: true,
+        df: PopR<I["columns"]>["df"]
+      }
+    ]
+  }>;
+
+  // todo allow generator functions
+  Default<T extends LT<I>>(defaultValue: T): TableSchema<{
+    name: I["name"],
+    columns: [
+      ...PopL<I["columns"]>,
+      {
+        name: PopR<I["columns"]>["name"],
+        type: PopR<I["columns"]>["type"],
+        pk: PopR<I["columns"]>["pk"],
+        nn: PopR<I["columns"]>["nn"],
+        uq: PopR<I["columns"]>["uq"],
+        df: T
+      }
+    ]
+  }>;
 }
 
-// export class Table {
-//   constructor(name: string) {
-
-//   }
-// }
-
-interface TableContructor {
-  new<Name extends string> (name: Name): TableT<{ name: Name, columns: [] }>;
+interface TableSchemaContructor {
+  new<Name extends string> (name: Name): TableSchema<{ name: Name, columns: [] }>;
 }
 
-class TableImpl {
+type GetComputed<T extends TableSchema<any>> =
+  T extends TableSchema<infer I> ? I : never;
+
+type GetComputedArr<T extends TableSchema<any>[], O extends ComputedTableSchema[] = []> =
+  T extends [infer S, ...infer Rest] ?
+    S extends TableSchema<infer I> ?
+      Rest extends TableSchema<any>[] ?
+      GetComputedArr<Rest, [...O, I]> : never : never
+  : O;
+
+type DatabaseDeclaration = {
+  tables: {
+    [name: string]: ComputedTableSchema;
+  }
+};
+
+type MapItems<I extends readonly { name: string }[]> = {
+  [K in I[number] as K["name"]]: K
+};
+
+interface DBTable<I extends ComputedTableSchema> {
+  get(key: PKT<I>): void;
+}
+
+type Database<I extends DatabaseDeclaration> = {
+  [K in keyof I["tables"]]: DBTable<I["tables"][K]>;
+};
+
+interface DatabaseContructor {
+  new<const Tables extends TableSchema<any>[]> (tables: Tables): Database<{
+    tables: MapItems<GetComputedArr<Tables>>
+  }>;
+}
+
+class TableSchemaImpl {
   constructor(name: string) {
 
   }
 }
 
-export const Table = TableImpl as TableContructor;
+export const TableSchema = TableSchemaImpl as TableSchemaContructor;
 
-export class Database {
-  constructor(tables: TableImpl[]) {
+export class DatabaseImpl {
+  constructor(tables: TableSchemaImpl[]) {
 
   }
 }
+
+export const Database = DatabaseImpl as DatabaseContructor;
