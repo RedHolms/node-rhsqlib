@@ -1,0 +1,47 @@
+{
+  "name": "rhsqlib",
+  "author": "RedHolms",
+  "description": "Library for dynamic cacheable SQL with different backends",
+  "license": "Free to use, edit and distribute",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/redholms/node-rhsqlib.git"
+  },
+  "keywords": [
+    "sql",
+    "sqlite",
+    "postgresql"
+  ],
+  "main": "index.js",
+  "types": "./types/index.d.ts",
+  "typings": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "default": "./types/index.d.ts"
+      },
+      "default": {
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts && tsc",
+    "watch": "concurrently --kill-others -p none \"tsx ./scripts/build.ts -w\" \"tsc --watch -w --pretty\"",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run type-check && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.13",
+    "concurrently": "^9.2.0",
+    "esbuild": "^0.25.6",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "src",
+    "dist",
+    "types"
+  ]
+}
