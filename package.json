@@ -27,14 +27,13 @@
     }
   },
   "scripts": {
-    "build": "tsx ./scripts/build.ts && tsc",
-    "watch": "concurrently --kill-others -p none \"tsx ./scripts/build.ts -w\" \"tsc --watch -w --pretty\"",
+    "build": "tsx ./scripts/build.ts",
+    "watch": "tsx ./scripts/build.ts -w",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run type-check && npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.13",
-    "concurrently": "^9.2.0",
     "esbuild": "^0.25.6",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
@@ -43,5 +42,9 @@
     "src",
     "dist",
     "types"
-  ]
+  ],
+  "dependencies": {
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
 }

@@ -1,47 +1,54 @@
-// this what i want to reach
-// everything should have type checking and caching
-// also allow multiple SQL backends (sqlite, postgresql, mysql, etc.)
-
 import sqlib from "..";
+import assert from "assert";
 
-const UsersSchema =
-  new sqlib.TableSchema("users")
-    .Column("id",                         "BIGINT" ).PrimaryKey()
-    .Column("banned",                     "BOOLEAN").NotNull().Default(false)
-    .Column("role",                       "INT"    ).NotNull().Default(0)
-    .Column("regDate",                    "BIGINT" ).NotNull()
-    .Column("balance",                    "MONEY"  ).NotNull().Default(0)
-    .Column("clientPrice",                "MONEY"  ).NotNull().Default(0)
-    .Column("clientAllowNegativeBalance", "BOOLEAN").NotNull().Default(false)
-    .Column("gotAccessBy",                "BIGINT" ).NotNull()
-    .Column("username",                   "TEXT"   ).NotNull().Unique();
+async function test() {
+  const UsersSchema =
+    new sqlib.TableSchema("users")
+      .Column("id",       "BIGINT"  ).PrimaryKey()
+      .Column("regDate",  "DATETIME").NotNull().Default(() => new Date())
+      .Column("username", "TEXT"    ).NotNull().Unique()
+      .Column("address",  "TEXT"    ).Default(null)
+      .Column("age",      "INT"     ).NotNull();
 
-const masterDb = new sqlib.Database([ UsersSchema ]);
+  const db = new sqlib.Database([ UsersSchema ]);
 
-// // by id
-masterDb.users.get(42);
+  assert((await db.users.list()).length === 0);
 
-// // returns list (becuase role NOT unique and not pkey)
-// masterDb.users.getBy("role");
+  await db.users.insert({
+    id: 0,
+    username: "coolguy",
+    age: 18
+  });
 
-// // returns one or undefined
-// masterDb.users.getBy("username");
+  await db.users.insert({
+    id: 1,
+    username: "fineguy",
+    address: "NewYork city",
+    age: 21
+  });
 
-// // same as just users.get(...)
-// masterDb.users.getBy("id", 42);
+  await db.users.insert({
+    id: 2,
+    username: "anotherguy",
+    age: 21
+  });
 
-// masterDb.users.list();
+  assert((await db.users.list()).length === 3);
 
-// masterDb.users.update(42, "role", 2);
-// masterDb.users.updateBy("id", 42, "role", 4);
+  let user = await db.users.get(0);
+  assert(user !== undefined && user.id === 0 && user.username === "coolguy");
 
-// masterDb.users.delete(42);
-// masterDb.users.deleteBy("id", 42);
+  user = await db.users.getBy("username", "fineguy");
+  assert(user !== undefined && user.id === 1 && user.username === "fineguy");
 
-// // must contain all not-null cols without default value
-// masterDb.users.insert({
-//   id: 42,
-//   regDate: Date.now(),
-//   gotAccessBy: 43,
-//   username: "coolguy55"
-// });
+  let list = await db.users.getBy("age", 21);
+  assert(list.length === 2);
+
+  user = await db.users.update(2, "age", 19);
+  assert(user !== undefined && user.username === "anotherguy");
+
+  user = await db.users.updateBy("username", "nonexistingguy", "age", 20);
+  assert(user === undefined);
+}
+
+test();

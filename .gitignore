@@ -1,7 +1,6 @@
 *.nogit*
 
 /dist/
-/types/
 
 node_modules/
 .yarn/
