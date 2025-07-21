@@ -249,7 +249,7 @@ interface DatabaseTable<
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
   ): Promise<
-    _CM[ColName]["uq"] extends true
+    _CM[QColName]["uq"] extends true
     ? ROW<S> | undefined
     : ROW<S>[]
   >;
