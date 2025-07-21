@@ -102,6 +102,8 @@ class Table {
   }
 
   async get(pKey: any) {
+    await this.initPromise;
+
     const cached = this.cache.get(pKey);
     if (cached !== undefined)
       return cached === NONE ? undefined : cached;
@@ -113,6 +115,8 @@ class Table {
   }
 
   async getBy(column: string, value: any) {
+    await this.initPromise;
+
     const col = this.colsMap.get(column);
 
     if (col === undefined)
@@ -137,6 +141,8 @@ class Table {
   }
 
   async update(pKey: any, column: string, value: any) {
+    await this.initPromise;
+
     const cached = this.cache.get(pKey);
     if (cached !== undefined) {
       if (cached === NONE)
@@ -149,6 +155,8 @@ class Table {
   }
 
   async updateBy(queryColumn: string, queryValue: any, column: string, value: any) {
+    await this.initPromise;
+
     const qcol = this.colsMap.get(queryColumn);
 
     if (qcol === undefined)
@@ -174,6 +182,8 @@ class Table {
   }
 
   async deleteBy(column: string, value: any) {
+    await this.initPromise;
+
     const col = this.colsMap.get(column);
 
     if (col === undefined)
@@ -187,11 +197,15 @@ class Table {
   }
 
   async deleteAll() {
+    await this.initPromise;
+
     this.invalidateCache();
     await this.query("DELETE FROM $tablename$");
   }
 
   async insert(init: any) {
+    await this.initPromise;
+
     const values = [];
 
     for (const col of this.schema.columns)
@@ -212,8 +226,10 @@ class Table {
     this.get(init[this.pkeyName]);
   }
 
-  query(query: string, ...args: any[]): Promise<any[]> {
-    return this.db.query(query.replaceAll("$tablename$", this.schema.name), ...args);
+  async query(query: string, ...args: any[]): Promise<any[]> {
+    await this.initPromise;
+
+    return await this.db.query(query.replaceAll("$tablename$", this.schema.name), ...args);
   }
 
   invalidateCache() {
