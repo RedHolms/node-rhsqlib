@@ -69,29 +69,176 @@ export class TableSchema {
 class Table {
   db: Database;
   schema: TableSchema;
+  colsMap: Map<string, ColumnSchema>;
   initPromise: Promise<void>;
+  pkeyName: string;
 
   constructor(db: Database, schema: TableSchema) {
     this.db = db;
     this.schema = schema;
+    this.colsMap = new Map(
+      schema.columns.map((col) => [col.name, col])
+    );
+
+    if (this.colsMap.size !== schema.columns.length)
+      throw new Error("Duplicate columns in table " + this.schema.name);
+
+    const pcol = this.schema.columns.find((col) => col.primaryKey);
+    if (pcol === undefined)
+      throw new Error("No primary key in table " + this.schema.name);
+
+    this.pkeyName = pcol.name;
+
     this.initPromise = this.init();
+  }
+
+  async get(pKey: any) {
+
+  }
+
+  async getBy(column: string, value: any) {
+
+  }
+
+  async list() {
+    await this.initPromise;
+
+    const result = await this.query("SELECT * FROM $tablename$");
+    return result.map((col) => this.transformColumn(col));
+  }
+
+  async update(pKey: any, column: string, value: any) {
+
+  }
+
+  async updateBy(queryColumn: string, queryValue: any, column: string, value: any) {
+
+  }
+
+  async delete(pKey: any) {
+
+  }
+
+  async deleteAll() {
+
+  }
+
+  async insert(init: any) {
+    const values = [];
+
+    for (const col of this.schema.columns)
+      values.push(await this.serializeToSql(col, init[col.name]));
+
+    let query = "INSERT INTO $tablename$ VALUES (";
+
+    let sep = '';
+    for (let count = values.length; count > 0; --count) {
+      query += sep + "?";
+      sep = ',';
+    }
+
+    query += ")";
+    console.log(values);
+    await this.query(query, ...values);
+  }
+
+  query(query: string, ...args: any[]): Promise<any[]> {
+    return this.db.query(query.replaceAll("$tablename$", this.schema.name), ...args);
+  }
+
+  // js value to sql value
+  private async serializeToSql(col: ColumnSchema, init: any | undefined): Promise<any> {
+    const {
+      name, type, notNull,
+      primaryKey,
+      // :-(
+      default: _default
+    } = col;
+
+    let value;
+    if (typeof init === "undefined") {
+      if (_default) {
+        if (typeof _default === "function")
+          value = await _default();
+        else
+          value = _default;
+      }
+      else {
+        if (notNull || primaryKey)
+          throw new Error("no value for " + name); // fixme laxy error msg
+
+        value = null;
+      }
+    }
+    else {
+      value = init;
+    }
+
+    let result = value;
+
+    if (value !== null) {
+      switch (type) {
+        case "BOOLEAN":
+          result = value ? 1 : 0;
+          break;
+        case "INT":
+        case "BIGINT":
+        case "MONEY":
+        case "TEXT":
+          break;
+        case "DATETIME":
+          result = (value as Date).toUTCString();
+          break;
+      }
+    }
+
+    return result;
+  }
+
+  private transformColumn(raw: any): any {
+    const result: any = {};
+
+    for (const col of this.schema.columns) {
+      const { name, type } = col;
+
+      if (!Object.hasOwn(raw, name))
+        throw new Error(name);//fixme lazy error msg
+
+      const rawValue = raw[name];
+      let value = rawValue;
+
+      switch (type) {
+        case "BOOLEAN":
+          value = !!rawValue;
+          break;
+        case "INT":
+        case "BIGINT":
+        case "MONEY":
+        case "TEXT":
+          break;
+        case "DATETIME":
+          value = Date.parse(rawValue);
+          break;
+      }
+
+      result[name] = value;
+    }
+
+    return result;
   }
 
   private genColDef(column: ColumnSchema): string {
     let result = `${column.name} ${column.type} `;
 
-    if (column.primaryKey) {
+    if (column.primaryKey)
       result += "PRIMARY KEY ";
-    }
-    else {
-      if (column.unique)
-        result += "UNIQUE ";
-      if (column.notNull)
-        result += "NOT NULL ";
-      if (column.default)
-        // "default" is done in JS
-        void 0;
-    }
+    if (column.unique)
+      result += "UNIQUE ";
+    if (column.notNull)
+      result += "NOT NULL ";
+    if (column.default)
+      // "default" is done in JS
+      void 0;
 
     return result;
   }

@@ -12,26 +12,26 @@ async function test() {
 
   const db = new sqlib.Database([ UsersSchema ]);
 
-  // assert((await db.users.list()).length === 0);
+  assert((await db.users.list()).length === 0);
 
-  // await db.users.insert({
-  //   id: 0,
-  //   username: "coolguy",
-  //   age: 18
-  // });
+  await db.users.insert({
+    id: 0,
+    username: "coolguy",
+    age: 18
+  });
 
-  // await db.users.insert({
-  //   id: 1,
-  //   username: "fineguy",
-  //   address: "NewYork city",
-  //   age: 21
-  // });
+  await db.users.insert({
+    id: 1,
+    username: "fineguy",
+    address: "NewYork city",
+    age: 21
+  });
 
-  // await db.users.insert({
-  //   id: 2,
-  //   username: "anotherguy",
-  //   age: 21
-  // });
+  await db.users.insert({
+    id: 2,
+    username: "anotherguy",
+    age: 21
+  });
 
   // assert((await db.users.list()).length === 3);
 
@@ -49,6 +49,8 @@ async function test() {
 
   // user = await db.users.updateBy("username", "nonexistingguy", "age", 20);
   // assert(user === undefined);
+
+  console.log("fine");
 }
 
 test();

@@ -23,7 +23,9 @@ interface ColumnSchema {
   pk: boolean;
   nn: boolean;
   uq: boolean;
-  df: ValueTypes[ValueType] | null | undefined;
+  df: ValueTypes[ValueType] | null
+    | (() => ValueTypes[ValueType] | Promise<ValueTypes[ValueType]> | null)
+    | undefined;
 }
 
 interface TableSchema {
@@ -177,6 +179,21 @@ interface TableSchemaBuilder<S extends TableSchema> {
       }
     ]
   }>;
+
+  Default<T extends LT<S>>(generator: () => Promise<T>): TableSchemaBuilder<{
+    name: S["name"],
+    columns: [
+      ...PopL<S["columns"]>,
+      {
+        name: PopR<S["columns"]>["name"],
+        type: PopR<S["columns"]>["type"],
+        pk: PopR<S["columns"]>["pk"],
+        nn: PopR<S["columns"]>["nn"],
+        uq: PopR<S["columns"]>["uq"],
+        df: T
+      }
+    ]
+  }>;
 }
 
 ///
@@ -210,6 +227,7 @@ interface DatabaseTable<
   >;
 
   // get all rows
+  // TODO paginate and return iterator
   list(): Promise<ROW<S>[]>;
 
   // edit cell by primary key
@@ -231,7 +249,7 @@ interface DatabaseTable<
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
   ): Promise<
-    _CM[QColName]["uq"] extends true
+    _CM[ColName]["uq"] extends true
     ? ROW<S> | undefined
     : ROW<S>[]
   >;

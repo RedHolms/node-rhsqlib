@@ -2,7 +2,7 @@
   "name": "rhsqlib",
   "author": "RedHolms",
   "description": "Library for dynamic cacheable SQL with different backends",
-  "license": "Free to use, edit and distribute",
+  "license": "Free to use, edit and distribute WITH ORIGINAL AUTHORSHIP",
   "version": "1.0.0",
   "repository": {
     "type": "git",
@@ -10,8 +10,7 @@
   },
   "keywords": [
     "sql",
-    "sqlite",
-    "postgresql"
+    "sqlite"
   ],
   "main": "./dist/index.js",
   "types": "./types/index.d.ts",
@@ -32,6 +31,10 @@
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run type-check && npm run build"
   },
+  "dependencies": {
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
   "devDependencies": {
     "@types/node": "^24.0.13",
     "esbuild": "^0.25.6",
@@ -42,9 +45,5 @@
     "src",
     "dist",
     "types"
-  ],
-  "dependencies": {
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
-  }
+  ]
 }
