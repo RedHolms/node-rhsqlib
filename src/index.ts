@@ -110,7 +110,7 @@ class Table {
 
     const result = await this.getBy(this.pkeyName, pKey);
 
-    this.cache.set(pKey, result);
+    this.cache.set(pKey, result === undefined ? NONE : result);
     return result;
   }
 
@@ -206,7 +206,7 @@ class Table {
   async insert(init: any) {
     await this.initPromise;
 
-    const values = [];
+    const values: any[] = [];
 
     for (const col of this.schema.columns)
       values.push(await this.serializeToSql(col, init[col.name]));
@@ -223,6 +223,7 @@ class Table {
     await this.query(query, ...values);
 
     // cache
+    this.cache.delete(init[this.pkeyName]);
     this.get(init[this.pkeyName]);
   }
 
