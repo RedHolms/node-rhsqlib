@@ -236,7 +236,7 @@ interface DatabaseTable<
     pKey: PKT<S>,
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
-  ): Promise<ROW<S> | undefined>;
+  ): Promise<void>;
 
   // edit cell(s) by column
   // returns modified value or undefined if row doesn't exists
@@ -248,11 +248,7 @@ interface DatabaseTable<
     queryValue: ValueTypes[_CM[QColName]["type"]],
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
-  ): Promise<
-    _CM[QColName]["uq"] extends true
-    ? ROW<S> | undefined
-    : ROW<S>[]
-  >;
+  ): Promise<void>;
 
   // delete row by pkey
   // returns true if row was existing

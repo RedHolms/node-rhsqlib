@@ -44,10 +44,12 @@ async function test() {
   let list = await db.users.getBy("age", 21);
   assert(list.length === 2);
 
-  user = await db.users.update(2, "age", 19);
+  await db.users.update(2, "age", 19);
+  user = await db.users.get(2);
   assert(user !== undefined && user.username === "anotherguy");
 
-  user = await db.users.updateBy("username", "nonexistingguy", "age", 20);
+  await db.users.updateBy("username", "nonexistingguy", "age", 20);
+  user = await db.users.getBy("username", "nonexistingguy");
   assert(user === undefined);
 
   console.log("fine");

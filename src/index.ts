@@ -120,12 +120,25 @@ class Table {
     return result.map((col) => this.transformColumn(col));
   }
 
-  async update(pKey: any, column: string, value: any) {
-
+  update(pKey: any, column: string, value: any) {
+    return this.updateBy(this.pkeyName, pKey, column, value);
   }
 
   async updateBy(queryColumn: string, queryValue: any, column: string, value: any) {
+    const qcol = this.colsMap.get(queryColumn);
 
+    if (qcol === undefined)
+      throw new Error("no col " + queryColumn); // fixme lazy error msg
+
+    const col = this.colsMap.get(column);
+
+    if (col === undefined)
+      throw new Error("no col " + column); // fixme lazy error msg
+
+    const sqlQValue = await this.serializeToSql(qcol, queryValue);
+    const sqlValue = await this.serializeToSql(qcol, value);
+
+    await this.query(`UPDATE $tablename$ SET ${column}=? WHERE ${queryColumn}=?`, sqlValue, sqlQValue);
   }
 
   async delete(pKey: any) {
