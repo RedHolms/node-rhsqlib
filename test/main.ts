@@ -33,16 +33,16 @@ async function test() {
     age: 21
   });
 
-  // assert((await db.users.list()).length === 3);
+  assert((await db.users.list()).length === 3);
 
-  // let user = await db.users.get(0);
-  // assert(user !== undefined && user.id === 0 && user.username === "coolguy");
+  let user = await db.users.get(0);
+  assert(user !== undefined && user.id === 0 && user.username === "coolguy");
 
-  // user = await db.users.getBy("username", "fineguy");
-  // assert(user !== undefined && user.id === 1 && user.username === "fineguy");
+  user = await db.users.getBy("username", "fineguy");
+  assert(user !== undefined && user.id === 1 && user.username === "fineguy");
 
-  // let list = await db.users.getBy("age", 21);
-  // assert(list.length === 2);
+  let list = await db.users.getBy("age", 21);
+  assert(list.length === 2);
 
   // user = await db.users.update(2, "age", 19);
   // assert(user !== undefined && user.username === "anotherguy");

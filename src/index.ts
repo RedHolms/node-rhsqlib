@@ -92,12 +92,25 @@ class Table {
     this.initPromise = this.init();
   }
 
-  async get(pKey: any) {
-
+  get(pKey: any) {
+    return this.getBy(this.pkeyName, pKey);
   }
 
   async getBy(column: string, value: any) {
+    const col = this.colsMap.get(column);
 
+    if (col === undefined)
+      throw new Error("no col " + column); // fixme lazy error msg
+
+    const sqlValue = await this.serializeToSql(col, value);
+    const rows = await this.query(`SELECT * FROM $tablename$ WHERE ${column}=?`, sqlValue);
+
+    if (col.unique || col.primaryKey) {
+      const row = rows[0];
+      return row ? this.transformColumn(row) : undefined;
+    }
+    
+    return rows.map((row) => this.transformColumn(row));
   }
 
   async list() {
