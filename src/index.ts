@@ -1,3 +1,5 @@
+// TODO FIXME refactor this shitty code
+
 import assert from "assert";
 import { openSqliteDatabase, type SqliteDatabase } from "./sqlite";
 
@@ -141,12 +143,22 @@ class Table {
     await this.query(`UPDATE $tablename$ SET ${column}=? WHERE ${queryColumn}=?`, sqlValue, sqlQValue);
   }
 
-  async delete(pKey: any) {
+  delete(pKey: any) {
+    return this.deleteBy(this.pkeyName, pKey);
+  }
 
+  async deleteBy(column: string, value: any) {
+    const col = this.colsMap.get(column);
+
+    if (col === undefined)
+      throw new Error("no col " + column); // fixme lazy error msg
+
+    const sqlValue = await this.serializeToSql(col, value);
+    await this.query(`DELETE FROM $tablename$ WHERE ${column}=?`, sqlValue);
   }
 
   async deleteAll() {
-
+    await this.query("DELETE FROM $tablename$");
   }
 
   async insert(init: any) {

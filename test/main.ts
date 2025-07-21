@@ -46,7 +46,7 @@ async function test() {
 
   await db.users.update(2, "age", 19);
   user = await db.users.get(2);
-  assert(user !== undefined && user.username === "anotherguy");
+  assert(user !== undefined && user.username === "anotherguy" && user.age === 19);
 
   await db.users.updateBy("username", "nonexistingguy", "age", 20);
   user = await db.users.getBy("username", "nonexistingguy");

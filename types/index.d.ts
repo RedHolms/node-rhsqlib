@@ -252,14 +252,14 @@ interface DatabaseTable<
 
   // delete row by pkey
   // returns true if row was existing
-  delete(pKey: PKT<S>): Promise<boolean>;
+  delete(pKey: PKT<S>): Promise<void>;
 
   // delete row(s) by column
   // returns true if any row was existing
   deleteBy<ColName extends keyof _CM>(
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
-  ): Promise<boolean>;
+  ): Promise<void>;
 
   // delete all rows
   deleteAll(): Promise<void>;
