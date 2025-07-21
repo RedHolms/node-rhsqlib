@@ -217,6 +217,7 @@ interface DatabaseTable<
 
   // get row(s) by column
   // returns list if column is not unique or single value (or undefined) otherwise
+  // NOT CACHEABLE
   getBy<ColName extends keyof _CM>(
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
@@ -240,6 +241,7 @@ interface DatabaseTable<
 
   // edit cell(s) by column
   // returns modified value or undefined if row doesn't exists
+  // NOT CACHEABLE. Will invalidate all cache
   updateBy<
     QColName extends keyof _CM,
     ColName extends keyof _CM
@@ -256,6 +258,7 @@ interface DatabaseTable<
 
   // delete row(s) by column
   // returns true if any row was existing
+  // NOT CACHEABLE. Will invalidate all cache
   deleteBy<ColName extends keyof _CM>(
     column: ColName,
     value: ValueTypes[_CM[ColName]["type"]]
@@ -271,6 +274,8 @@ interface DatabaseTable<
   // "$tablename$" substring in the query will be replaced
   //  with the table name
   query(query: string, ...args: any[]): Promise<any[]>;
+
+  invalidateCache(): void;
 }
 
 type Database<I extends DatabaseSchema> = {

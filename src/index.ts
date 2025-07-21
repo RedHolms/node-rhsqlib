@@ -2,6 +2,7 @@
 
 import assert from "assert";
 import { openSqliteDatabase, type SqliteDatabase } from "./sqlite";
+import { WeakRefMap } from "./WeakRefMap";
 
 interface ColumnSchema {
   name: string;
@@ -68,12 +69,17 @@ export class TableSchema {
   }
 }
 
+// used in cache map as unexisting of row
+const NONE = Symbol();
+
 class Table {
   db: Database;
   schema: TableSchema;
   colsMap: Map<string, ColumnSchema>;
   initPromise: Promise<void>;
   pkeyName: string;
+  // pkey to row
+  cache: WeakRefMap<any, any | typeof NONE>;
 
   constructor(db: Database, schema: TableSchema) {
     this.db = db;
@@ -90,12 +96,20 @@ class Table {
       throw new Error("No primary key in table " + this.schema.name);
 
     this.pkeyName = pcol.name;
+    this.cache = new WeakRefMap();
 
     this.initPromise = this.init();
   }
 
-  get(pKey: any) {
-    return this.getBy(this.pkeyName, pKey);
+  async get(pKey: any) {
+    const cached = this.cache.get(pKey);
+    if (cached !== undefined)
+      return cached === NONE ? undefined : cached;
+
+    const result = await this.getBy(this.pkeyName, pKey);
+
+    this.cache.set(pKey, result);
+    return result;
   }
 
   async getBy(column: string, value: any) {
@@ -122,8 +136,16 @@ class Table {
     return result.map((col) => this.transformColumn(col));
   }
 
-  update(pKey: any, column: string, value: any) {
-    return this.updateBy(this.pkeyName, pKey, column, value);
+  async update(pKey: any, column: string, value: any) {
+    const cached = this.cache.get(pKey);
+    if (cached !== undefined) {
+      if (cached === NONE)
+        return;
+
+      cached[column] = value;
+    }
+
+    await this.updateBy(this.pkeyName, pKey, column, value);
   }
 
   async updateBy(queryColumn: string, queryValue: any, column: string, value: any) {
@@ -141,9 +163,13 @@ class Table {
     const sqlValue = await this.serializeToSql(qcol, value);
 
     await this.query(`UPDATE $tablename$ SET ${column}=? WHERE ${queryColumn}=?`, sqlValue, sqlQValue);
+
+    if (queryColumn !== this.pkeyName)
+      this.invalidateCache();
   }
 
   delete(pKey: any) {
+    this.cache.set(pKey, NONE);
     return this.deleteBy(this.pkeyName, pKey);
   }
 
@@ -155,9 +181,13 @@ class Table {
 
     const sqlValue = await this.serializeToSql(col, value);
     await this.query(`DELETE FROM $tablename$ WHERE ${column}=?`, sqlValue);
+
+    if (column !== this.pkeyName)
+      this.invalidateCache();
   }
 
   async deleteAll() {
+    this.invalidateCache();
     await this.query("DELETE FROM $tablename$");
   }
 
@@ -176,12 +206,18 @@ class Table {
     }
 
     query += ")";
-    console.log(values);
     await this.query(query, ...values);
+
+    // cache
+    this.get(init[this.pkeyName]);
   }
 
   query(query: string, ...args: any[]): Promise<any[]> {
     return this.db.query(query.replaceAll("$tablename$", this.schema.name), ...args);
+  }
+
+  invalidateCache() {
+    this.cache.clear();
   }
 
   // js value to sql value
