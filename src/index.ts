@@ -247,8 +247,8 @@ class Table {
     } = col;
 
     let value;
-    if (typeof init === "undefined") {
-      if (_default) {
+    if (init === undefined) {
+      if (_default !== undefined) {
         if (typeof _default === "function")
           value = await _default();
         else
