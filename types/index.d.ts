@@ -333,6 +333,9 @@ interface DatabaseTable<
   query(query: string, ...args: any[]): Promise<any[]>;
 
   invalidateCache(): void;
+
+  enableCache(): void;
+  disableCache(): void;
 }
 
 type Database<I extends DatabaseSchema> = {

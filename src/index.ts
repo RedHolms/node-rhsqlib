@@ -90,6 +90,7 @@ class Table {
   initPromise: Promise<void>;
   pkeyName: string;
   pkeyAutoInc: boolean;
+  cacheEnabled: boolean;
   // pkey to row
   cache: WeakRefMap<any, any | typeof NONE>;
 
@@ -108,6 +109,7 @@ class Table {
       throw new Error("No primary key in table " + this.schema.name);
 
     this.pkeyName = pcol.name;
+    this.cacheEnabled = true;
     this.cache = new WeakRefMap();
 
     this.pkeyAutoInc = pcol.autoIncrement;
@@ -118,13 +120,17 @@ class Table {
   async get(pKey: any) {
     await this.initPromise;
 
-    const cached = this.cache.get(pKey);
-    if (cached !== undefined)
-      return cached === NONE ? undefined : cached;
+    if (this.cacheEnabled) {
+      const cached = this.cache.get(pKey);
+      if (cached !== undefined)
+        return cached === NONE ? undefined : cached;
+    }
 
     const result = await this.getBy(this.pkeyName, pKey);
 
-    this.cache.set(pKey, result === undefined ? NONE : result);
+    if (this.cacheEnabled)
+      this.cache.set(pKey, result === undefined ? NONE : result);
+
     return result;
   }
 
@@ -157,12 +163,14 @@ class Table {
   async update(pKey: any, column: string, value: any) {
     await this.initPromise;
 
-    const cached = this.cache.get(pKey);
-    if (cached !== undefined) {
-      if (cached === NONE)
-        return;
+    if (this.cacheEnabled) {
+      const cached = this.cache.get(pKey);
+      if (cached !== undefined) {
+        if (cached === NONE)
+          return;
 
-      cached[column] = value;
+        cached[column] = value;
+      }
     }
 
     await this.updateBy(this.pkeyName, pKey, column, value);
@@ -191,7 +199,8 @@ class Table {
   }
 
   delete(pKey: any) {
-    this.cache.set(pKey, NONE);
+    if (this.cacheEnabled)
+      this.cache.set(pKey, NONE);
     return this.deleteBy(this.pkeyName, pKey);
   }
 
@@ -256,7 +265,18 @@ class Table {
   }
 
   invalidateCache() {
-    this.cache.clear();
+    if (this.cacheEnabled)
+      this.cache.clear();
+  }
+
+  enableCache() {
+    this.cache = new WeakRefMap();
+    this.cacheEnabled = true;
+  }
+
+  disableCache() {
+    this.cacheEnabled = false;
+    this.cache = undefined as any;
   }
 
   // js value to sql value
