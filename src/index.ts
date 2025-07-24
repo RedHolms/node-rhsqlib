@@ -253,9 +253,10 @@ class Table {
     query += ")";
     await this.query(query, ...values);
 
-    // cache
-    this.cache.delete(init[this.pkeyName]);
-    this.get(init[this.pkeyName]);
+    if (this.cacheEnabled) {
+      this.cache.delete(init[this.pkeyName]);
+      this.get(init[this.pkeyName]);
+    }
   }
 
   async query(query: string, ...args: any[]): Promise<any[]> {
