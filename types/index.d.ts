@@ -3,22 +3,28 @@
 ///
 
 // Get all elements from array except for last
-export type PopL<Arr extends any[]> = Arr extends [...infer L, infer _] ? L : [];
+type PopL<Arr extends any[]> = Arr extends [...infer L, infer _] ? L : [];
 // Get last element from array
-export type PopR<Arr extends any[]> = Arr extends [...infer _, infer R] ? R : never;
+type PopR<Arr extends any[]> = Arr extends [...infer _, infer R] ? R : never;
 
 // Convers array of objects to map with "name" as the key
-export type MapItems<I extends readonly { name: string }[]> = {
+type MapItems<I extends readonly { name: string }[]> = {
   [K in I[number] as K["name"]]: K
 };
 
-export type Equ<A,B> = A extends B ? B extends A ? true : false : false;
+type Equ<A,B> = A extends B ? B extends A ? true : false : false;
 
-export type UndefinedToOptional<T> = {
+type UndefinedToOptional<T> = {
   [K in keyof T as undefined extends T[K] ? K : never]?: T[K];
 } & {
   [K in keyof T as undefined extends T[K] ? never : K]: T[K];
 };
+
+type JSONPrimitive = string | number | boolean | null | undefined;
+type JSONObject = { [key: string]: JSONValue };
+type JSONArray = JSONValue[];
+
+type JSONValue = JSONPrimitive | JSONArray | JSONObject;
 
 ///
 /// SQL Data types
@@ -32,6 +38,7 @@ export interface ValueTypes {
   ["MONEY"]:    number;
   ["TEXT"]:     string;
   ["DATETIME"]: Date;
+  ["JSON"]:     JSONValue;
 }
 
 // Any SQL type
@@ -45,6 +52,7 @@ interface ColumnSchema {
   name: string;
   type: ValueType;
   pk: boolean;
+  ai: boolean;
   nn: boolean;
   uq: boolean;
   df: ValueTypes[ValueType] | null
@@ -89,7 +97,9 @@ type ROW<S extends TableSchema> = {
 
 // get JS object that can be used for initialization of row
 type ROWINIT<S extends TableSchema> = UndefinedToOptional<{
-  [Col in S["columns"][number] as Col["name"]]:
+  [Col in S["columns"][number] as
+    Col["ai"] extends true ? never : Col["name"]
+  ]:
     CTP<Col> | (Equ<Col["df"], undefined> extends true ? never : undefined);
 }>;
 
@@ -120,6 +130,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: Name,
         type: Type,
         pk: false,
+        ai: false,
         nn: false,
         uq: false,
         df: undefined
@@ -136,12 +147,29 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: true,
+        ai: PopR<S["columns"]>["ai"],
         nn: true,
         uq: true,
         df: PopR<S["columns"]>["df"]
       }
     ]
   }>;
+
+  AutoIncrement(): PopR<S["columns"]>["pk"] extends true ? TableSchemaBuilder<{
+    name: S["name"],
+    columns: [
+      ...PopL<S["columns"]>,
+      {
+        name: PopR<S["columns"]>["name"],
+        type: PopR<S["columns"]>["type"],
+        pk: PopR<S["columns"]>["pk"],
+        ai: true,
+        nn: PopR<S["columns"]>["nn"],
+        uq: PopR<S["columns"]>["uq"],
+        df: PopR<S["columns"]>["df"]
+      }
+    ]
+  }> : never;
 
   NotNull(): TableSchemaBuilder<{
     name: S["name"],
@@ -151,6 +179,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: PopR<S["columns"]>["pk"],
+        ai: PopR<S["columns"]>["ai"],
         nn: true,
         uq: PopR<S["columns"]>["uq"],
         df: PopR<S["columns"]>["df"]
@@ -167,6 +196,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: PopR<S["columns"]>["pk"],
+        ai: PopR<S["columns"]>["ai"],
         nn: PopR<S["columns"]>["nn"],
         uq: true,
         df: PopR<S["columns"]>["df"]
@@ -182,6 +212,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: PopR<S["columns"]>["pk"],
+        ai: PopR<S["columns"]>["ai"],
         nn: PopR<S["columns"]>["nn"],
         uq: PopR<S["columns"]>["uq"],
         df: T
@@ -197,6 +228,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: PopR<S["columns"]>["pk"],
+        ai: PopR<S["columns"]>["ai"],
         nn: PopR<S["columns"]>["nn"],
         uq: PopR<S["columns"]>["uq"],
         df: T
@@ -212,6 +244,7 @@ interface TableSchemaBuilder<S extends TableSchema> {
         name: PopR<S["columns"]>["name"],
         type: PopR<S["columns"]>["type"],
         pk: PopR<S["columns"]>["pk"],
+        ai: PopR<S["columns"]>["ai"],
         nn: PopR<S["columns"]>["nn"],
         uq: PopR<S["columns"]>["uq"],
         df: T

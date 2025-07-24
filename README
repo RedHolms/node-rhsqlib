@@ -1,0 +1,2 @@
+I thinked a lot about this project and came up to an idea of SQL type-parser that will get types just from SQL query
+ and then give declarations. Soon probably I'll rewrite this whole shit up

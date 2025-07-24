@@ -3,7 +3,7 @@
   "author": "RedHolms",
   "description": "Library for dynamic cacheable SQL with different backends",
   "license": "Free to use, edit and distribute WITH ORIGINAL AUTHORSHIP",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/redholms/node-rhsqlib.git"

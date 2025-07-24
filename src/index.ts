@@ -8,6 +8,7 @@ interface ColumnSchema {
   name: string;
   type: string;
   primaryKey: boolean;
+  autoIncrement: boolean;
   notNull: boolean;
   unique: boolean;
   default?: any | (() => any);
@@ -26,6 +27,7 @@ export class TableSchema {
     this.columns.push({
       name, type,
       primaryKey: false,
+      autoIncrement: false,
       notNull: false,
       unique: false
     });
@@ -37,6 +39,15 @@ export class TableSchema {
       throw new Error("No columns");
 
     this.columns[this.columns.length - 1].primaryKey = true;
+
+    return this;
+  }
+
+  AutoIncrement(): this {
+    if (this.columns.length === 0)
+      throw new Error("No columns");
+
+    this.columns[this.columns.length - 1].autoIncrement = true;
 
     return this;
   }
@@ -78,6 +89,7 @@ class Table {
   colsMap: Map<string, ColumnSchema>;
   initPromise: Promise<void>;
   pkeyName: string;
+  pkeyAutoInc: boolean;
   // pkey to row
   cache: WeakRefMap<any, any | typeof NONE>;
 
@@ -97,6 +109,8 @@ class Table {
 
     this.pkeyName = pcol.name;
     this.cache = new WeakRefMap();
+
+    this.pkeyAutoInc = pcol.autoIncrement;
 
     this.initPromise = this.init();
   }
@@ -208,12 +222,20 @@ class Table {
 
     const values: any[] = [];
 
-    for (const col of this.schema.columns)
-      values.push(await this.serializeToSql(col, init[col.name]));
-
-    let query = "INSERT INTO $tablename$ VALUES (";
+    let query = "INSERT INTO $tablename$ (";
 
     let sep = '';
+    for (const col of this.schema.columns) {
+      if (col.autoIncrement)
+        continue;
+      query += sep + col.name;
+      sep = ',';
+      values.push(await this.serializeToSql(col, init[col.name]));
+    }
+
+    query += ") VALUES (";
+
+    sep = '';
     for (let count = values.length; count > 0; --count) {
       query += sep + "?";
       sep = ',';
@@ -277,8 +299,11 @@ class Table {
         case "MONEY":
         case "TEXT":
           break;
+        case "JSON":
+          result = JSON.stringify(value);
+          break;
         case "DATETIME":
-          result = (value as Date).toUTCString();
+          result = (value as Date).toISOString();
           break;
       }
     }
@@ -307,6 +332,9 @@ class Table {
         case "MONEY":
         case "TEXT":
           break;
+        case "JSON":
+          value = JSON.parse(rawValue);
+          break;
         case "DATETIME":
           value = Date.parse(rawValue);
           break;
@@ -323,6 +351,8 @@ class Table {
 
     if (column.primaryKey)
       result += "PRIMARY KEY ";
+    if (column.autoIncrement)
+      result += "AUTOINCREMENT ";
     if (column.unique)
       result += "UNIQUE ";
     if (column.notNull)
